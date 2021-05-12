@@ -1,6 +1,7 @@
-require "absinthe/version"
+# frozen_string_literal: true
+
+require 'absinthe/version'
+require 'absinthe/lexer'
 
 module Absinthe
-  class Error < StandardError; end
-  # Your code goes here...
 end
