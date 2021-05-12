@@ -16,24 +16,31 @@ module Absinthe
 
         scanner = StringScanner.new(@query)
         until scanner.eos?
-          MATCHERS.each do |matcher, id|
-            matched = scanner.scan(matcher)
-            next unless matched
+          performed = MATCHERS.any? do |matcher, id|
+            if matched = scanner.scan(matcher)
+              tokens << case matcher
+                        when Regexp
+                          [id, [line, pos], matched]
+                        else
+                          [id, [line, pos]]
+                        end
 
-            tokens << case matcher
-                      when Regexp
-                        [id, [line, pos], matched]
-                      else
-                        [id, [line, pos]]
-                      end
-
-            pos += matched.length
-            break
+              pos += matched.length
+            end
           end
 
-          if spacing = scanner.scan(/\s*/)
+          if spacing = scanner.scan(/ +/)
             pos += spacing.length
+            performed ||= true
           end
+          
+          if newlines = scanner.scan(/\n+/)
+            pos = 1
+            line += newlines.length
+            performed ||= true
+          end
+
+          break unless performed
         end
 
         tokens
@@ -41,9 +48,13 @@ module Absinthe
     end
 
     MATCHERS = {
-      '{' => :left,
-      '}' => :right,
-      /(\w+)/ => :name
+      '{' => :bracket_left,
+      '}' => :bracket_right,
+      '(' => :paren_left,
+      ')' => :paren_right,
+      ':' => :colon,
+      /(\w+)/ => :name,
+      /(".*?")/ => :string,
     }.freeze
   end
 end
